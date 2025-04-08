@@ -174,6 +174,11 @@ flowchart TD
         S1 --> R
         S1 --> D
 
+        S2 --> P
+        S2 -- "loki4j" --> L
+        S2 --> R
+        S2 --> D
+
         P --> G
         L --> G
     end
