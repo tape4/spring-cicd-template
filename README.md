@@ -48,13 +48,13 @@ flowchart TD
         N -- "/status" --> NS
         N -- "/grafana" --> G
 
-        S1 --> P
+        S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
-        S1 --> R
-        S1 --> D
+        S1 -- "RefreshToken" --> R
+        S1 -- "DataQuery" --> D
 
-        P --> G
-        L --> G
+        P -- "DataFeed" --> G
+	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
@@ -109,13 +109,13 @@ flowchart TD
         N -- "/status" --> NS
         N -- "/grafana" --> G
 
-        S1 --> P
+	S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
-        S1 --> R
-        S1 --> D
+	S1 -- "RefreshToken" --> R
+	S1 -- "DataQuery" --> D
 
-        P --> G
-        L --> G
+	P -- "DataFeed" --> G
+	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
@@ -169,18 +169,18 @@ flowchart TD
         N -- "/status" --> NS
         N -- "/grafana" --> G
 
-        S1 --> P
+        S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
-        S1 --> R
-        S1 --> D
+        S1 -- "RefreshToken" --> R
+        S1 -- "DataQuery" --> D
 
-        S2 --> P
+        S2 -- "Metrics" --> P
         S2 -- "loki4j" --> L
-        S2 --> R
-        S2 --> D
+        S2 -- "RefreshToken" --> R
+        S2 -- "DataQuery" --> D
 
-        P --> G
-        L --> G
+        P -- "DataFeed" --> G
+	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
@@ -236,13 +236,13 @@ flowchart TD
         N -- "/status" --> NS
         N -- "/grafana" --> G
 
-        S2 --> P
+        S2 -- "Metrics" --> P
         S2 -- "loki4j" --> L
-        S2 --> R
-        S2 --> D
+        S2 -- "RefreshToken" --> R
+        S2 -- "DataQuery" --> D
 
-        P --> G
-        L --> G
+	P -- "DataFeed" --> G
+	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
@@ -296,13 +296,13 @@ flowchart TD
         N -- "/status" --> NS
         N -- "/grafana" --> G
 
-        S2 --> P
+	S2 -- "Metrics" --> P
         S2 -- "loki4j" --> L
-        S2 --> R
-        S2 --> D
+        S2 -- "RefreshToken" --> R
+        S2 -- "DataQuery" --> D
 
-        P --> G
-        L --> G
+        P -- "DataFeed" --> G
+	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
