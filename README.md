@@ -481,21 +481,25 @@ sudo usermod -aG docker $USER
 
 ## 모니터링
 
-- Nginx 상태 확인: `http://your-ec2-ip/status`
+### EC2 보안 그룹 설정
+다음 포트들을 EC2 보안 그룹에서 열어주세요:
+
+#### 웹 서비스 접근 (필수)
+- 80: Nginx 웹 서버 (HTTP)
+
+#### 데이터베이스 접근 (선택)
+- ${DB_PORT}: MariaDB (기본값: 3306)
+- ${REDIS_PORT}: Redis (기본값: 6379)
+
+### 모니터링 도구 접속
+- Nginx 상태 확인: `http://your-ec2-ip:80/status`
   - Spring App #1, #2의 상태 확인 가능
   - Grafana 서비스 상태 확인 가능
 
-- Grafana 대시보드: `http://your-ec2-ip/grafana`
+- Grafana 대시보드: `http://your-ec2-ip:80/grafana`
   - Prometheus 메트릭 시각화
   - Loki 로그 시각화
 
 ## CI/CD 통합
 
 이 파이프라인은 CI/CD 플랫폼에서 `./rolling_update/rolling-update.sh` 스크립트를 실행하여 트리거될 수 있습니다.
-
-## 참고 사항
-
-- 이 시스템은 AWS EC2 프리티어에서 실행되도록 설계됨
-- 프리티어 인스턴스의 제한된 메모리로 인해 스왑 공간 권장
-- 모든 서비스는 쉬운 배포 및 확장을 위해 컨테이너화됨
-- 롤링 업데이트 전략은 무중단 배포를 보장
