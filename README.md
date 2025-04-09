@@ -1,173 +1,202 @@
 # Spring 애플리케이션을 위한 CI/CD 파이프라인
 
-이 프로젝트는 AWS EC2(프리티어)에서 실행되는 Spring 애플리케이션을 위한 CI/CD 파이프라인을 구현합니다. 인프라는 Spring Boot, MariaDB, Nginx, Redis, Grafana, Loki, Prometheus를 포함하며, 모두 Docker를 통해 컨테이너화되어 있습니다.
+이 프로젝트는 AWS EC2(For only one Free tier instance)에서 실행되는 Spring 애플리케이션을 위한 CI/CD 파이프라인을 구현합니다. 인프라는 Spring Boot, MariaDB, Nginx, Redis, Grafana, Loki, Prometheus를 포함하며, 모두 Docker를 통해 컨테이너화되어 있습니다.
 
 ## 시스템 구조
 
 ### 기본 구조
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'background': '#F0F0F0' }}}%%
 flowchart TD
-		%% 노드에 적용할 클래스 정의
+	%% 노드에 적용할 클래스 정의
     classDef redText fill:#f8d7da,stroke:#721c24,stroke-width:2px,color:#721c24;
     classDef blueText fill:#cce5ff,stroke:#004085,stroke-width:2px,color:#004085;
-    
+    classDef external fill:#b3e5fc,stroke:#0288d1,stroke-width:2px;
+    classDef nginx fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef app fill:#f8bbd0,stroke:#880e4f,stroke-width:2px;
+    classDef monitor fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef storage fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
+    classDef management fill:#d1c4e9,stroke:#5e35b1,stroke-width:2px;
+
     %% 외부 사용자 노드
-    U[User]
+    U[User]:::external
 
     %% AWS EC2 내 시스템 전체를 묶는 서브그래프
     subgraph "AWS EC2"
         %% Layer 1: Nginx
         subgraph "Layer 1: Nginx"
-          N[Nginx]
-          NS[Nginx-status]
+          N[Nginx]:::nginx
+          NS[Nginx-status]:::nginx
         end
 
         %% Layer 2: Spring Applications
         subgraph "Layer 2: Spring Applications"
-          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]
-          S2["(8081:8080)<br/>(Idle)"]
-	        class S1 redText
+          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]:::app
+          S2["(8081:8080)<br/>(Idle)"]:::app
         end
 
         %% Layer 3: Monitoring Services
         subgraph "Layer 3: Monitoring Services"
-          P[Prometheus<br/>9090:9090]
-          G[Grafana<br/>3000:3000]
-          L[Loki<br/>3100:3100]
+          P[Prometheus<br/>9090:9090]:::monitor
+          G[Grafana<br/>3000:3000]:::monitor
+          L[Loki<br/>3100:3100]:::monitor
         end
 
-        %% Layer 4: Backend Services
-        subgraph "Layer 4: Backend Services"
-          R[Redis<br/>6379:6379]
-          D[MariaDB<br/>3306:3306]
+        %% Layer 4: storage Services
+        subgraph "Layer 4: storage Services"
+          R[Redis<br/>6379:6379]:::storage
+          D[MariaDB<br/>3306:3306]:::storage
+        end
+
+        subgraph "Rolling Update Procedures"
+            PULL("Pull Latest Images"):::management
+            ROLL_UPDATE("Rolling Update Script"):::management
         end
 
         %% 내부 연결
-        N -- "/" --> S1
-        N -- "not connected" --> S2
-        N -- "/status" --> NS
-        N -- "/grafana" --> G
+        N -- "Route: /" --> S1
+        N -- "Route: /: Not connected" --> S2
+        N -- "Route: /status" --> NS
+        N -- "Route: /grafana" --> G
 
         S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
         S1 -- "RefreshToken" --> R
         S1 -- "DataQuery" --> D
 
-        P -- "DataFeed" --> G
-	L -- "LogFeed" --> G
+        P -- "MetricsFeed" --> G
+	    L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
     
-    linkStyle 0 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 1 stroke:#004085, stroke-width:2px, color:#004085
-    linkStyle 2 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 3 stroke:#ff0000, stroke-width:2px, color:#ff0000
+    linkStyle 0 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 1 stroke:#004085, stroke-width:5px, color:#004085
+    linkStyle 2 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 3 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 10 stroke:#008000, stroke-width:5px, color:#000000
 ```
 
 2. 업데이트 중 상태:
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'background': '#F0F0F0' }}}%%
 flowchart TD
-		%% 노드에 적용할 클래스 정의
-    classDef redText fill:#f8d7da,stroke:#721c24,stroke-width:2px,color:#721c24;
-    classDef blueText fill:#cce5ff,stroke:#004085,stroke-width:2px,color:#004085;
+	%% 노드에 적용할 클래스 정의
+    classDef external fill:#b3e5fc,stroke:#0288d1,stroke-width:2px;
+    classDef nginx fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef app fill:#f8bbd0,stroke:#880e4f,stroke-width:2px;
+    classDef monitor fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef storage fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
+    classDef management fill:#d1c4e9,stroke:#5e35b1,stroke-width:2px;
     
-    %% 외부 사용자 노드
-    U[User]
+ %% 외부 사용자 노드
+    U[User]:::external
 
     %% AWS EC2 내 시스템 전체를 묶는 서브그래프
     subgraph "AWS EC2"
         %% Layer 1: Nginx
         subgraph "Layer 1: Nginx"
-          N[Nginx]
-          NS[Nginx-status]
+          N[Nginx]:::nginx
+          NS[Nginx-status]:::nginx
         end
 
-        %% Layer 2: Spring Applications
+ %% Layer 2: Spring Applications
         subgraph "Layer 2: Spring Applications"
-          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]
-          S2["(8081:8081)<br/>Spring App #2<br/>(updating)"]
-	        class S1 redText
+          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]:::app
+          S2["(8081:8080)<br/>Spring App #2<br/>(Updating)"]:::app
         end
 
         %% Layer 3: Monitoring Services
         subgraph "Layer 3: Monitoring Services"
-          P[Prometheus<br/>9090:9090]
-          G[Grafana<br/>3000:3000]
-          L[Loki<br/>3100:3100]
+          P[Prometheus<br/>9090:9090]:::monitor
+          G[Grafana<br/>3000:3000]:::monitor
+          L[Loki<br/>3100:3100]:::monitor
         end
 
-        %% Layer 4: Backend Services
-        subgraph "Layer 4: Backend Services"
-          R[Redis<br/>6379:6379]
-          D[MariaDB<br/>3306:3306]
+        %% Layer 4: storage Services
+        subgraph "Layer 4: storage Services"
+          R[Redis<br/>6379:6379]:::storage
+          D[MariaDB<br/>3306:3306]:::storage
+        end
+
+        subgraph "Rolling Update Procedures"
+            PULL("Pull Latest Images"):::management
+            ROLL_UPDATE("Rolling Update Script"):::management
         end
 
         %% 내부 연결
-        N -- "/" --> S1
-        N -- "not connected" --> S2
-        N -- "/status" --> NS
-        N -- "/grafana" --> G
+	N -- "Route: /" --> S1
+        N -- "Route: /: Not connected" --> S2
+        N -- "Route: /status" --> NS
+        N -- "Route: /grafana" --> G
 
 	S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
 	S1 -- "RefreshToken" --> R
 	S1 -- "DataQuery" --> D
 
-	P -- "DataFeed" --> G
+	P -- "MetricsFeed" --> G
 	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
     
-    linkStyle 0 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 1 stroke:#004085, stroke-width:2px, color:#004085
-    linkStyle 2 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 3 stroke:#ff0000, stroke-width:2px, color:#ff0000
+    linkStyle 0 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 1 stroke:#004085, stroke-width:5px, color:#004085
+    linkStyle 2 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 3 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 10 stroke:#008000, stroke-width:5px, color:#000000
 ```
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'background': '#F0F0F0' }}}%%
 flowchart TD
-		%% 노드에 적용할 클래스 정의
-    classDef redText fill:#f8d7da,stroke:#721c24,stroke-width:2px,color:#721c24;
-    classDef blueText fill:#cce5ff,stroke:#004085,stroke-width:2px,color:#004085;
-    
-    %% 외부 사용자 노드
-    U[User]
+	%% 노드에 적용할 클래스 정의
+    classDef external fill:#b3e5fc,stroke:#0288d1,stroke-width:2px;
+    classDef nginx fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef app fill:#f8bbd0,stroke:#880e4f,stroke-width:2px;
+    classDef monitor fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef storage fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
+    classDef management fill:#d1c4e9,stroke:#5e35b1,stroke-width:2px;
 
-    %% AWS EC2 내 시스템 전체를 묶는 서브그래프
-    subgraph "AWS EC2"
+    %% 외부 사용자 노드
+    U[User]:::external
+
+subgraph "AWS EC2"
         %% Layer 1: Nginx
         subgraph "Layer 1: Nginx"
-          N[Nginx]
-          NS[Nginx-status]
+          N[Nginx]:::nginx
+          NS[Nginx-status]:::nginx
         end
 
         %% Layer 2: Spring Applications
         subgraph "Layer 2: Spring Applications"
-          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]
-          S2["(8081:8081)<br/>Spring App #2<br/>(Running)"]
-	        class S1 redText
-	        class S2 redText
+          S1["(8080:8080)<br/>Spring App #1<br/>(Running)"]:::app
+          S2["(8081:8080)<br/>Spring App #2<br/>(Running)"]:::app
         end
 
         %% Layer 3: Monitoring Services
         subgraph "Layer 3: Monitoring Services"
-          P[Prometheus<br/>9090:9090]
-          G[Grafana<br/>3000:3000]
-          L[Loki<br/>3100:3100]
+          P[Prometheus<br/>9090:9090]:::monitor
+          G[Grafana<br/>3000:3000]:::monitor
+          L[Loki<br/>3100:3100]:::monitor
         end
 
-        %% Layer 4: Backend Services
-        subgraph "Layer 4: Backend Services"
-          R[Redis<br/>6379:6379]
-          D[MariaDB<br/>3306:3306]
+        %% Layer 4: storage Services
+        subgraph "Layer 4: storage Services"
+          R[Redis<br/>6379:6379]:::storage
+          D[MariaDB<br/>3306:3306]:::storage
+        end
+
+        subgraph "Rolling Update Procedures"
+            PULL("Pull Latest Images"):::management
+            ROLL_UPDATE("Rolling Update Script"):::management
         end
 
         %% 내부 연결
-        N -- "/" --> S1
-        N -- "/" --> S2
-        N -- "/status" --> NS
-        N -- "/grafana" --> G
+        N -- "Route: /" --> S1
+        N -- "Route: /" --> S2
+        N -- "Route: /status" --> NS
+        N -- "Route: /grafana" --> G
 
         S1 -- "Metrics" --> P
         S1 -- "loki4j" --> L
@@ -179,124 +208,147 @@ flowchart TD
         S2 -- "RefreshToken" --> R
         S2 -- "DataQuery" --> D
 
-        P -- "DataFeed" --> G
-	L -- "LogFeed" --> G
+        P -- "MetricsFeed" --> G
+	    L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
     
-    linkStyle 0 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 1 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 2 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 3 stroke:#ff0000, stroke-width:2px, color:#ff0000
+    linkStyle 0 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 1 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 2 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 3 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 14 stroke:#008000, stroke-width:5px, color:#000000
 ```
 
 3. 업데이트 후 상태:
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'background': '#F0F0F0' }}}%%
 flowchart TD
-		%% 노드에 적용할 클래스 정의
+	%% 노드에 적용할 클래스 정의
     classDef redText fill:#f8d7da,stroke:#721c24,stroke-width:2px,color:#721c24;
     classDef blueText fill:#cce5ff,stroke:#004085,stroke-width:2px,color:#004085;
+    classDef external fill:#b3e5fc,stroke:#0288d1,stroke-width:2px;
+    classDef nginx fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef app fill:#f8bbd0,stroke:#880e4f,stroke-width:2px;
+    classDef monitor fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef storage fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
+    classDef management fill:#d1c4e9,stroke:#5e35b1,stroke-width:2px;
     
-    %% 외부 사용자 노드
-    U[User]
+     %% 외부 사용자 노드
+    U[User]:::external
 
     %% AWS EC2 내 시스템 전체를 묶는 서브그래프
     subgraph "AWS EC2"
         %% Layer 1: Nginx
         subgraph "Layer 1: Nginx"
-          N[Nginx]
-          NS[Nginx-status]
+          N[Nginx]:::nginx
+          NS[Nginx-status]:::nginx
         end
 
         %% Layer 2: Spring Applications
         subgraph "Layer 2: Spring Applications"
-          S1["(8080:8080)<br/>Spring App #1<br/>(stopping)"]
-          S2["(8081:8081)<br/>Spring App #2<br/>(Running)"]
-	        class S1 redText
-	        class S2 redText
+          S1["(8080:8080)<br/>Spring App #1<br/>(stopping)"]:::app
+          S2["(8081:8080)<br/>Spring App #2<br/>(Running)"]:::app
         end
 
         %% Layer 3: Monitoring Services
         subgraph "Layer 3: Monitoring Services"
-          P[Prometheus<br/>9090:9090]
-          G[Grafana<br/>3000:3000]
-          L[Loki<br/>3100:3100]
+          P[Prometheus<br/>9090:9090]:::monitor
+          G[Grafana<br/>3000:3000]:::monitor
+          L[Loki<br/>3100:3100]:::monitor
         end
 
-        %% Layer 4: Backend Services
-        subgraph "Layer 4: Backend Services"
-          R[Redis<br/>6379:6379]
-          D[MariaDB<br/>3306:3306]
+        %% Layer 4: storage Services
+        subgraph "Layer 4: storage Services"
+          R[Redis<br/>6379:6379]:::storage
+          D[MariaDB<br/>3306:3306]:::storage
+        end
+
+        subgraph "Rolling Update Procedures"
+            PULL("Pull Latest Images"):::management
+            ROLL_UPDATE("Rolling Update Script"):::management
         end
 
         %% 내부 연결
-        N -- "not connected" --> S1
-        N -- "/" --> S2
-        N -- "/status" --> NS
-        N -- "/grafana" --> G
+        N -- "Route: /: Not connected" --> S1
+        N -- "Route: /" --> S2
+        N -- "Route: /status" --> NS
+        N -- "Route: /grafana" --> G
 
         S2 -- "Metrics" --> P
         S2 -- "loki4j" --> L
         S2 -- "RefreshToken" --> R
         S2 -- "DataQuery" --> D
 
-	P -- "DataFeed" --> G
+	P -- "MetricsFeed" --> G
 	L -- "LogFeed" --> G
     end
 
     U -->|HTTP Request| N
     
-    linkStyle 0 stroke:#004085, stroke-width:2px, color:#004085
-    linkStyle 1 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 2 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 3 stroke:#ff0000, stroke-width:2px, color:#ff0000
+    linkStyle 0 stroke:#004085, stroke-width:5px, color:#004085
+    linkStyle 1 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 2 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 3 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 10 stroke:#008000, stroke-width:5px, color:#000000
 ```
 
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'background': '#F0F0F0' }}}%%
 flowchart TD
-		%% 노드에 적용할 클래스 정의
+	%% 노드에 적용할 클래스 정의
     classDef redText fill:#f8d7da,stroke:#721c24,stroke-width:2px,color:#721c24;
     classDef blueText fill:#cce5ff,stroke:#004085,stroke-width:2px,color:#004085;
-    
+    classDef external fill:#b3e5fc,stroke:#0288d1,stroke-width:2px;
+    classDef nginx fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef app fill:#f8bbd0,stroke:#880e4f,stroke-width:2px;
+    classDef monitor fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef storage fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
+    classDef management fill:#d1c4e9,stroke:#5e35b1,stroke-width:2px;
+
     %% 외부 사용자 노드
-    U[User]
+    U[User]:::external
 
     %% AWS EC2 내 시스템 전체를 묶는 서브그래프
     subgraph "AWS EC2"
         %% Layer 1: Nginx
         subgraph "Layer 1: Nginx"
-          N[Nginx]
-          NS[Nginx-status]
+          N[Nginx]:::nginx
+          NS[Nginx-status]:::nginx
         end
 
         %% Layer 2: Spring Applications
         subgraph "Layer 2: Spring Applications"
-					S1["(8080:8080)<br/>(Idle)"]
-          S2["(8081:8080)<br/>Spring App #2<br/>(Running)"]
-	        class S2 redText
+            S1["(8080:8080)<br/>(Idle)"]:::app
+            S2["(8081:8080)<br/>Spring App #2<br/>(Running)"]:::app
         end
 
         %% Layer 3: Monitoring Services
         subgraph "Layer 3: Monitoring Services"
-          P[Prometheus<br/>9090:9090]
-          G[Grafana<br/>3000:3000]
-          L[Loki<br/>3100:3100]
+          P[Prometheus<br/>9090:9090]:::monitor
+          G[Grafana<br/>3000:3000]:::monitor
+          L[Loki<br/>3100:3100]:::monitor
         end
 
-        %% Layer 4: Backend Services
-        subgraph "Layer 4: Backend Services"
-          R[Redis<br/>6379:6379]
-          D[MariaDB<br/>3306:3306]
+        %% Layer 4: storage Services
+        subgraph "Layer 4: storage Services"
+          R[Redis<br/>6379:6379]:::storage
+          D[MariaDB<br/>3306:3306]:::storage
+        end
+
+        subgraph "Rolling Update Procedures"
+            PULL("Pull Latest Images"):::management
+            ROLL_UPDATE("Rolling Update Script"):::management
         end
 
         %% 내부 연결
-        N -- "/" --> S2
-        N -- "not connected" --> S1
-        N -- "/status" --> NS
-        N -- "/grafana" --> G
+        N -- "Route: /: Not connected" --> S1
+        N -- "Route: /" --> S2
+        N -- "Route: /status" --> NS
+        N -- "Route: /grafana" --> G
 
-	S2 -- "Metrics" --> P
+        S2 -- "Metrics" --> P
         S2 -- "loki4j" --> L
         S2 -- "RefreshToken" --> R
         S2 -- "DataQuery" --> D
@@ -307,10 +359,11 @@ flowchart TD
 
     U -->|HTTP Request| N
     
-    linkStyle 0 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 1 stroke:#004085, stroke-width:2px, color:#004085
-    linkStyle 2 stroke:#ff0000, stroke-width:2px, color:#ff0000
-    linkStyle 3 stroke:#ff0000, stroke-width:2px, color:#ff0000
+    linkStyle 0 stroke:#004085, stroke-width:5px, color:#004085
+    linkStyle 1 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 2 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 3 stroke:#ff0000, stroke-width:5px, color:#ff0000
+    linkStyle 10 stroke:#008000, stroke-width:5px, color:#000000
 ```
 
 - **Nginx**: 모든 요청 처리 및 로드 밸런싱 (Spring App 컨테이너 간)
@@ -318,6 +371,22 @@ flowchart TD
 - **MariaDB & Redis**: 데이터 저장 및 캐싱
 - **Prometheus & Loki**: 모니터링 및 로깅
 - **Grafana**: 모니터링 대시보드
+
+## 사용된 커스텀 Nginx 이미지
+
+기본 Nginx 오픈소스 버전은 upstream 대상의 애플리케이션 레벨 헬스체크 기능이 내장되어 있지 않기 때문에, 이 프로젝트에서는 아래의 커스텀 이미지를 사용합니다:
+- [mrlioncub/nginx_upstream_check_module (GitHub)](https://github.com/mrlioncub/nginx_upstream_check_module)
+- [idscan/nginx_upstream_check_module (Docker Hub)](https://hub.docker.com/r/idscan/nginx_upstream_check_module)
+
+이 커스텀 이미지는 NGINX를 [nginx_upstream_check_module](https://github.com/yaoweibin/nginx_upstream_check_module) 모듈과 함께 빌드한 것으로, 다음과 같은 기능을 제공합니다:
+
+- **HTTP 상태 기반의 upstream 서버 헬스체크**
+- 비정상 인스턴스 자동 제외 → 안정적인 트래픽 분산
+- 무중단 롤링 업데이트 시 유용하게 작동
+
+> **도커파일 위치**: `nginx/Dockerfile`  
+> 참고: 이 모듈은 NGINX Plus에서 제공하는 기능의 오픈소스 대안입니다.
+
 
 ## 사전 요구사항
 
