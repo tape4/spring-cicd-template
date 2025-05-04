@@ -4,13 +4,13 @@ services:
         container_name: ${PROJECT_NAME}-mariadb
         environment:
             MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-            MYSQL_DATRABASE: ${DB_NAME}
+            MYSQL_DATABASE: ${DB_NAME}
             MYSQL_USER: ${DB_USER}
             MYSQL_PASSWORD: ${DB_PASSWORD}
         ports:
             - "${DB_PORT}:3306"
         volumes:
-            - mysql_data:/vat/lib/mysql
+            - mysql_data:/var/lib/mysql
             - ./init.sql:/docker-entrypoint-initdb.d/init.sql
         networks:
             - backend
