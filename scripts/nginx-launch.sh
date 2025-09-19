@@ -20,7 +20,7 @@ TARGET_DIR="/etc/nginx"
 TARGET="nginx.conf"
 
 CONTAINER_NAME="${PROJECT_NAME}-nginx"
-IMAGE_NAME="${PROJECT_NAME}-nginx-healthcheck-module"
+IMAGE_NAME="${PROJECT_NAME}-nginx-healthcheck"
 
 # --- nginx 설정 파일 치환 ---
 echo "Processing config file: $NGINX_DIR/$TARGET"
@@ -39,7 +39,9 @@ if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${IMAGE_NAME}:"
   echo "Image '${IMAGE_NAME}' exists. Skipping build."
 else
   echo "Image '${IMAGE_NAME}' does not exist. Building docker image..."
+  cd "$NGINX_DIR"
   docker build -t ${IMAGE_NAME} .
+  cd - > /dev/null
 fi
 
 # --- 컨테이너 실행 ---

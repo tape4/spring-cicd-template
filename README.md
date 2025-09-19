@@ -411,7 +411,37 @@ flowchart TD
 
 ### 1. 스왑 공간 설정(프리티어에 권장)
 
-EC2 프리티어 인스턴스의 제한된 메모리로 인해 충분한 스왑 공간을 설정하는 것이 권장됩니다. 각자 필요에 맞게 스왑 공간을 설정하세요.
+EC2 프리티어 인스턴스의 제한된 메모리(1GB)로 인해 스왑 공간 설정이 필수입니다. 
+
+**자동 설정:**
+```bash
+# 스크립트 실행 권한 부여
+chmod +x scripts/setup-swap.sh
+
+# 스왑 메모리 설정 (2GB)
+sudo ./scripts/setup-swap.sh
+```
+
+**수동 설정 (선택사항):**
+```bash
+# 2GB 스왑 파일 생성
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# 부팅 시 자동 활성화
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# 스왑 사용률 조정 (메모리 90% 사용 후 스왑 사용)
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+```
+
+**확인:**
+```bash
+free -h  # 메모리 상태 확인
+swapon --show  # 스왑 상태 확인
+```
 
 ### 2. 환경 설정
 
