@@ -18,11 +18,11 @@ STORAGE_DIR="$(dirname "$0")/../storage"
 # --- 1. init.sql 템플릿 처리 ---
 echo "Processing init.sql..."
 envsubst '$DB_NAME $DB_USER $DB_PASSWORD $DB_TESTDB_NAME' < "$STORAGE_DIR/init.sql" > "$STORAGE_DIR/$SQL_PROCESSED"
-echo "Created: $STORAGE_DIR/$SQL_PORCESSED"
+echo "Created: $STORAGE_DIR/$SQL_PROCESSED"
 
 # --- 2. docker-compose.yml 처리 ---
 echo "Processing docker-compose.yml..."
-envsubst '$PROJECT_NAME $PROMETHEUS_EXTERNAL_PORT $LOKI_PORT $GRAFANA_PORT $GRAFANA_USER $GRAFANA_PASSWORD' < "$STORAGE_DIR/docker-compose.yml" > "$STORAGE_DIR/$DC_PROCESSED"
+envsubst '$PROJECT_NAME $DB_ROOT_PASSWORD $DB_NAME $DB_USER $DB_PASSWORD $DB_PORT $REDIS_PORT' < "$STORAGE_DIR/docker-compose.yml" > "$STORAGE_DIR/$DC_PROCESSED"
 echo "Created: $STORAGE_DIR/$DC_PROCESSED"
 
 # --- 3. 서비스가 이미 실행 중이면 종료 ---

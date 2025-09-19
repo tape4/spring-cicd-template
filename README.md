@@ -430,11 +430,6 @@ EC2 프리티어 인스턴스의 제한된 메모리로 인해 충분한 스왑 
    - `SPRING_APP_PORT_1`: Spring App #1의 외부 노출 포트 (기본값: 8080)
    - `SPRING_APP_PORT_2`: Spring App #2의 외부 노출 포트 (기본값: 8081)
 
-   #### Prometheus 설정
-   - `PROMETHEUS_INTERNAL_PORT`: Spring 애플리케이션 내부 Prometheus 포트 (기본값: 8088)
-   - `PROMETHEUS_EXTERNAL_PORT`: 외부 노출 Prometheus 포트 (기본값: 9090)
-   - `PROMETHEUS_PORT_1`: Spring App #1의 Prometheus 외부 포트 (기본값: 8088)
-   - `PROMETHEUS_PORT_2`: Spring App #2의 Prometheus 외부 포트 (기본값: 8089)
 
    #### Docker 이미지 설정
    - `DOCKER_ACCOUNT_ID`: Docker Hub 계정 ID

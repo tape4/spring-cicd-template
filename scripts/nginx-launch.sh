@@ -24,7 +24,7 @@ IMAGE_NAME="${PROJECT_NAME}-nginx-healthcheck-module"
 
 # --- nginx 설정 파일 치환 ---
 echo "Processing config file: $NGINX_DIR/$TARGET"
-envsubst '$SPRING_APP_PORT_1 $SPRING_APP_PORT_2 $GRAFANA_PORT $PROMETHEUS_EXTERNAL_PORT' < "$NGINX_DIR/$TARGET" > "$NGINX_DIR/$NGINX_PROCESSED"
+envsubst '$SPRING_APP_PORT_1 $SPRING_APP_PORT_2 $GRAFANA_PORT' < "$NGINX_DIR/$TARGET" > "$NGINX_DIR/$NGINX_PROCESSED"
 echo "Processed config file saved as: $NGINX_DIR/$NGINX_PROCESSED"
 
 # --- 기존 컨테이너 중지 및 제거 ---

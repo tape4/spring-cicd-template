@@ -9,7 +9,7 @@ datasources:
       uid: prometheus
       type: prometheus
       access: proxy
-      url: http://${PROJECT_NAME}-prometheus:${PROMETHEUS_EXTERNAL_PORT}/prometheus
+      url: http://${PROJECT_NAME}-prometheus:9090/prometheus
       isDefault: true
       editable: true
 

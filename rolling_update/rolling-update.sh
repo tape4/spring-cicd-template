@@ -111,17 +111,13 @@ function restart_redis() {
 
 function start_new_container() {
   idle_port=${idle_ports[0]} # idle 포트
-  prometheus_port=""
   
-  # 포트 번호에 따라 Prometheus 포트 설정
-  if [ "$idle_port" == "${SPRING_APP_PORT_1}" ]; then
-    prometheus_port="${PROMETHEUS_PORT_1}"
-  else
-    prometheus_port="${PROMETHEUS_PORT_2}"
-  fi
-  
-  echo "Starting container using port $idle_port with prometheus port $prometheus_port..."
-  docker run -d --name "${PROJECT_NAME}-spring-container-${idle_port}" -p $idle_port:${SPRING_INTERNAL_PORT} -p $prometheus_port:${PROMETHEUS_INTERNAL_PORT} --add-host host.docker.internal:host-gateway $IMAGE_NAME
+  echo "Starting container using port $idle_port..."
+  docker run -d --name "${PROJECT_NAME}-spring-container-${idle_port}" \
+    -p $idle_port:${SPRING_INTERNAL_PORT} \
+    --network backend \
+    --add-host host.docker.internal:host-gateway \
+    $IMAGE_NAME
 }
 
 function stop_old_container() {

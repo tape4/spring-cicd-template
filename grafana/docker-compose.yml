@@ -9,9 +9,9 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus-config.yml"
       - "--web.route-prefix=/prometheus"
-      - "--web.external-url=http://localhost:${PROMETHEUS_EXTERNAL_PORT}/prometheus"
+      - "--web.external-url=http://localhost:9090/prometheus"
     ports:
-      - "${PROMETHEUS_EXTERNAL_PORT}:9090"
+      - "9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

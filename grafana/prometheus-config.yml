@@ -7,6 +7,6 @@ scrape_configs:
       static_configs:
           - targets:
                 [
-                    "host.docker.internal:${PROMETHEUS_PORT_1}",
-                    "host.docker.internal:${PROMETHEUS_PORT_2}",
+                    "host.docker.internal:${SPRING_APP_PORT_1}",
+                    "host.docker.internal:${SPRING_APP_PORT_2}",
                 ]
