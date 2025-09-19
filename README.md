@@ -454,6 +454,8 @@ swapon --show  # 스왑 상태 확인
 
    #### 프로젝트 설정
    - `PROJECT_NAME`: 프로젝트 이름 (예: myproject)
+     - **중요**: 이 값은 Grafana 대시보드의 로그 쿼리에서 사용됩니다
+     - Spring 애플리케이션의 로그 라벨과 일치해야 합니다
 
    #### Spring 애플리케이션 설정
    - `SPRING_INTERNAL_PORT`: Docker 컨테이너 내부 Spring 애플리케이션 포트 (기본값: 8080)
@@ -512,8 +514,12 @@ management.metrics.export.prometheus.enabled=true
 
 ...
 
+# Loki 로깅 설정 (선택사항)
+logging.config=classpath:logback-spring.xml
+
 # 주의: 위 설정들은 .env 파일의 환경 변수와 정확히 일치해야 합니다.
 # DB_NAME, DB_USER, DB_PASSWORD, REDIS_PORT 등의 값이 .env 파일의 값과 동일한지 확인하세요.
+# 또한 Loki 로깅을 위해 app 라벨이 PROJECT_NAME과 일치하도록 logback-spring.xml을 설정하세요.
 ```
 
 ## 사용법
@@ -585,6 +591,8 @@ sudo usermod -aG docker $USER
   ./scripts/plg-launch.sh
   ./scripts/plg-shutdown.sh
   ```
+
+**참고**: PLG 스택 실행 시 Grafana 대시보드가 자동으로 `.env` 파일의 `PROJECT_NAME`에 맞춰 설정됩니다. 이를 통해 로그 쿼리가 올바른 애플리케이션을 대상으로 합니다.
 
 ## 모니터링
 
