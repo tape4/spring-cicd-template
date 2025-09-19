@@ -529,6 +529,14 @@ sudo usermod -aG docker $USER
 # 변경사항 적용을 위해 재로그인 필요
 ```
 
+### 네트워크 설정 (최초 1회)
+```bash
+# 공유 Docker 네트워크 생성
+./scripts/setup-network.sh
+```
+
+**참고**: 이 단계는 최초 1회만 실행하면 됩니다. 모든 인프라 서비스가 동일한 `shared_backend` 네트워크를 사용합니다.
+
 ### 인프라 관리
 
 1. 모든 인프라 시작:

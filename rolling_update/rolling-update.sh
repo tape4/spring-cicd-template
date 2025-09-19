@@ -89,7 +89,7 @@ function switch_container()
 function is_new_container_running() {
 
   idle_port=${idle_ports[0]}
-  response_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$idle_port/health-check)
+  response_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$idle_port/actuator/health)
 
   if [[ $response_code -ge 200 && $response_code -lt 300 ]]; then
     echo "true"
@@ -115,7 +115,7 @@ function start_new_container() {
   echo "Starting container using port $idle_port..."
   docker run -d --name "${PROJECT_NAME}-spring-container-${idle_port}" \
     -p $idle_port:${SPRING_INTERNAL_PORT} \
-    --network backend \
+    --network shared_backend \
     --add-host host.docker.internal:host-gateway \
     $IMAGE_NAME
 }

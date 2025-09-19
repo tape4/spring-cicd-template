@@ -15,7 +15,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitoring-network
+      - backend
 
   loki:
     env_file:
@@ -28,7 +28,7 @@ services:
     volumes:
       - loki_data:/loki
     networks:
-      - monitoring-network
+      - backend
 
   grafana:
     env_file:
@@ -49,11 +49,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitoring-network
+      - backend
 
 networks:
-  monitoring-network:
-    driver: bridge
+  backend:
+    external: true
+    name: shared_backend
 
 volumes:
   loki_data:

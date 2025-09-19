@@ -3307,7 +3307,7 @@
         {
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{app=\"fontory\"}",
+          "expr": "{app=\"$PROJECT_NAME\"}",
           "queryType": "range",
           "refId": "A"
         }

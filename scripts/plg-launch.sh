@@ -26,16 +26,21 @@ echo "Processing datasources/datasources.yaml..."
 envsubst '$PROJECT_NAME $LOKI_PORT $GRAFANA_USER $GRAFANA_PASSWORD' < "$GRAFANA_DIR/datasources/datasources.yaml" > "$GRAFANA_DIR/$DATASOURCES_CONFIG_FILE"
 echo "Created: $GRAFANA_DIR/$DATASOURCES_CONFIG_FILE"
 
-# --- 3. docker-compose.yml 처리 ---
+# --- 3. dashboards/spring-boot-board.json 처리 ---
+echo "Processing dashboards/spring-boot-board.json..."
+envsubst '$PROJECT_NAME' < "$GRAFANA_DIR/dashboards/spring-boot-board.json" > "$GRAFANA_DIR/dashboards/spring-boot-board.processed.json"
+echo "Created: $GRAFANA_DIR/dashboards/spring-boot-board.processed.json"
+
+# --- 4. docker-compose.yml 처리 ---
 echo "Processing docker-compose.yml..."
 envsubst '$PROJECT_NAME $LOKI_PORT $GRAFANA_PORT $GRAFANA_USER $GRAFANA_PASSWORD' < "$GRAFANA_DIR/docker-compose.yml" > "$GRAFANA_DIR/$DC_PROCESSED"
 echo "Created: $GRAFANA_DIR/$DC_PROCESSED"
 
-# --- 4. 서비스가 이미 실행 중이면 종료 ---
+# --- 5. 서비스가 이미 실행 중이면 종료 ---
 echo "Stopping existing services (if any)..."
 docker compose -f "$GRAFANA_DIR/$DC_PROCESSED" down
 
-# --- 5. docker-compose 실행 ---
+# --- 6. docker-compose 실행 ---
 echo "Starting plg Services using processed docker-compose file..."
 docker compose -f "$GRAFANA_DIR/$DC_PROCESSED" up -d
 

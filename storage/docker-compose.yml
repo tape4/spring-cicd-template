@@ -11,7 +11,7 @@ services:
             - "${DB_PORT}:3306"
         volumes:
             - mysql_data:/var/lib/mysql
-            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./init.processed.sql:/docker-entrypoint-initdb.d/init.sql
         networks:
             - backend
 
@@ -25,7 +25,8 @@ services:
 
 networks:
     backend:
-        driver: bridge
+        external: true
+        name: shared_backend
 
 volumes:
     mysql_data:
